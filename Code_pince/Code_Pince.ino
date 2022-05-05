@@ -70,7 +70,8 @@ void setup() {
   back.attach(PIN_BACK);
 
   //DEBUG
-  //Serial.begin(9600);
+  Serial.begin(9600);
+  Serial.println("Init debug serial");
 
   //RADIO
   radio.begin();                      // Initialisation du module NRF24
@@ -84,40 +85,43 @@ void loop() {
 
   if (radio.available() > 0) {
     radio.read( &dataReceived, sizeof(dataReceived) );
+    Serial.println("Mode: " + dataReceived.value[0]);
     if (mode != dataReceived.value[0])
     {
       mode = dataReceived.value[0];
       modeUpdated = true;
     }
-    if (false) {
-      if (modeUpdated)
-      {
-        modeUpdated = false;
-        switch (mode) {
-          case 0: {
-              OpenPince(1000);
-              externalControlMode = false;
-            } break;
-          case 1: {
-              ClosePince(1000);
-              externalControlMode = false;
-            } break;
-          case 2: {
-              externalControlMode = true;
-            } break;
-        }
-      }
+  }
 
-      if (externalControlMode)
-      {
-        if (dataReceived.value[1] >= MINSERVO && dataReceived.value[1] <= MAXSERVO)
-          front.writeMicroseconds(dataReceived.value[1]);
-        if (dataReceived.value[2] >= MINSERVO && dataReceived.value[2] <= MAXSERVO)
-          back.writeMicroseconds(dataReceived.value[2]);
-        if (dataReceived.value[3] >= MINSERVO && dataReceived.value[3] <= MAXSERVO)
-          middle.writeMicroseconds(dataReceived.value[3]);
-      }
+  if (modeUpdated)
+  {
+    modeUpdated = false;
+    switch (mode) {
+      case 0: {
+          Serial.println("Open all");
+          OpenPince(1000);
+          externalControlMode = false;
+        } break;
+      case 1: {
+          Serial.println("Close all");
+          ClosePince(1000);
+          externalControlMode = false;
+        } break;
+      case 2: {
+          Serial.println("External control");
+          externalControlMode = true;
+        } break;
     }
+  }
+
+  if (externalControlMode)
+  {
+    if (dataReceived.value[1] >= MINSERVO && dataReceived.value[1] <= MAXSERVO)
+      front.writeMicroseconds(dataReceived.value[1]);
+    if (dataReceived.value[2] >= MINSERVO && dataReceived.value[2] <= MAXSERVO)
+      back.writeMicroseconds(dataReceived.value[2]);
+    if (dataReceived.value[3] >= MINSERVO && dataReceived.value[3] <= MAXSERVO)
+      middle.writeMicroseconds(dataReceived.value[3]);
   }
 }
 

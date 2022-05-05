@@ -30,6 +30,7 @@
 
 #include <SPI.h>
 #include <RF24.h>
+#include <ArduinoJson.h>
 
 //DEF PIN
 #define PIN_CE   7
@@ -45,12 +46,13 @@ struct {
 
 int input = 0;
 int readIndex = 0;
+int mode = 0;
 
 int valeurpot1 = 0;
 int valeurpot2 = 0;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial);
   Serial.println("Init nano...");
   radio.begin();
@@ -62,51 +64,53 @@ void setup() {
 }
 
 void loop() {
-  int mode = -1;
   // send data only when you receive data:
-  if (Serial.available() > 0) {
-    int serialInput = Serial.read();
-    Serial.print("I received code: ");
-    Serial.println(serialInput, DEC);
-    if (serialInput >= 48 && serialInput <= 58)
-      input = (serialInput - 48);
-    if (serialInput == 10) {
-      Serial.println(input, DEC);
-      //send input mode
-      checkMode(input);
+  if (Serial.available() > 1) {
+    StaticJsonDocument<200> doc;
 
-      readIndex = 0;
-      input = 0;
+    DeserializationError error = deserializeJson(doc, Serial);
+    // Test if parsing succeeds.
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+      return;
     }
-    //To-do lire plusieurs chiffre pour faire nombre /!\ ordre d'arriver des caractères
+
+    checkMode(doc);
   }
 }
 
-void checkMode(int mode) {
+void checkMode(StaticJsonDocument<200> doc) {
+  if(doc["m"])
+    mode = doc["m"];
+  uint16_t pwm_1 = doc["pwm_1"] ? doc["pwm_1"]: 0;
+  uint16_t pwm_2 = doc["pwm_2"] ? doc["pwm_2"]: 0;
   switch (mode) {
-    case 0:{
-      Serial.println("Open all");
-      dataToSend.value[0] = 0;
-      sendData();
-    }break;
-    case 1:{
-      Serial.println("Close all");
-      dataToSend.value[0] = 1;
-      sendData();
-    } break;
-    case 2:{
-      Serial.println("Control continu avec potentiometre");
-      while(true){
-        dataToSend.value[0] = 2;
-        valeurpot1 = analogRead(A0);
-        valeurpot2 = analogRead(A1);
-        valeurpot1=map(valeurpot1, 0,660,700,2300);
-        dataToSend.value[1] = valeurpot1;
-        dataToSend.value[2] = valeurpot1;
-        dataToSend.value[3] = map(valeurpot2, 0,660,700,2300);
+    case 1: {
+        Serial.println("Open all");
+        dataToSend.value[0] = 0;
         sendData();
-      }
-    }break;
+      } break;
+    case 2: {
+        Serial.println("Close all");
+        dataToSend.value[0] = 1;
+        sendData();
+      } break;
+    case 3: {
+        Serial.println("Control ");
+        dataToSend.value[0] = 2;
+        valeurpot1 += (pwm_1);
+        valeurpot1 -= (pwm_2);
+        if(valeurpot1 <= 0)
+          valeurpot1 = 0;
+        if(valeurpot1 >= 25500)
+          valeurpot1 = 25500;
+        const int mapValeur1 = map(valeurpot1, 0, 25500, 700, 2300);
+        dataToSend.value[1] = mapValeur1;
+        dataToSend.value[2] = mapValeur1;
+        dataToSend.value[3] = map(valeurpot2, 0, 660, 700, 2300);
+        sendData();
+      } break;
   }
 }
 
@@ -115,12 +119,12 @@ void sendData() {
   rslt = radio.write( &dataToSend, sizeof(dataToSend) );
   // Always use sizeof() as it gives the size as the number of bytes.
   // For example if dataToSend was an int sizeof() would correctly return 2
-
+  /*
   Serial.print("Data Sent ");
   if (rslt) {
     Serial.println("  Acknowledge received");
   }
   else {
     Serial.println("  Tx failed");
-  }
+  }*/
 }
