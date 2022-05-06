@@ -97,7 +97,7 @@ void checkMode(StaticJsonDocument<200> doc) {
         sendData();
       } break;
     case 3: {
-        Serial.println("Control ");
+        Serial.println("Control_fb ");
         dataToSend.value[0] = 2;
         valeurpot1 += (pwm_1);
         valeurpot1 -= (pwm_2);
@@ -106,9 +106,26 @@ void checkMode(StaticJsonDocument<200> doc) {
         if(valeurpot1 >= 25500)
           valeurpot1 = 25500;
         const int mapValeur1 = map(valeurpot1, 0, 25500, 700, 2300);
+        const int mapValeur2 = map(valeurpot2, 0, 25500, 700, 2300);
         dataToSend.value[1] = mapValeur1;
         dataToSend.value[2] = mapValeur1;
-        dataToSend.value[3] = map(valeurpot2, 0, 660, 700, 2300);
+        dataToSend.value[3] = mapValeur2;
+        sendData();
+      } break;
+    case 4: {
+        Serial.println("Control_m ");
+        dataToSend.value[0] = 2;
+        valeurpot2 += (pwm_1);
+        valeurpot2 -= (pwm_2);
+        if(valeurpot2 <= 0)
+          valeurpot2 = 0;
+        if(valeurpot2 >= 25500)
+          valeurpot2 = 25500;
+        const int mapValeur1 = map(valeurpot1, 0, 25500, 700, 2300);
+        const int mapValeur2 = map(valeurpot2, 0, 25500, 700, 2300);
+        dataToSend.value[1] = mapValeur1;
+        dataToSend.value[2] = mapValeur1;
+        dataToSend.value[3] = mapValeur2;
         sendData();
       } break;
   }
